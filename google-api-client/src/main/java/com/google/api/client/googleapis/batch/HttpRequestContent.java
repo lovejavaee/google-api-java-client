@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,7 +18,6 @@ import com.google.api.client.http.AbstractHttpContent;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -35,19 +34,24 @@ class HttpRequestContent extends AbstractHttpContent {
 
   /** HTTP request. */
   private final HttpRequest request;
+  private static final String HTTP_VERSION = "HTTP/1.1";
 
   HttpRequestContent(HttpRequest request) {
     super("application/http");
     this.request = request;
   }
 
+  @Override
   public void writeTo(OutputStream out) throws IOException {
     Writer writer = new OutputStreamWriter(out, getCharset());
     // write method and URL
     writer.write(request.getRequestMethod());
     writer.write(" ");
     writer.write(request.getUrl().build());
+    writer.write(" ");
+    writer.write(HTTP_VERSION);
     writer.write(NEWLINE);
+
     // write headers
     HttpHeaders headers = new HttpHeaders();
     headers.fromHttpHeaders(request.getHeaders());
@@ -64,10 +68,11 @@ class HttpRequestContent extends AbstractHttpContent {
       }
     }
     HttpHeaders.serializeHeadersForMultipartRequests(headers, null, null, writer);
+    // HTTP headers are always terminated with an empty line; RFC 7230 §3
+    writer.write(NEWLINE);
+    writer.flush();
     // write content
     if (content != null) {
-      writer.write(NEWLINE);
-      writer.flush();
       content.writeTo(out);
     }
   }

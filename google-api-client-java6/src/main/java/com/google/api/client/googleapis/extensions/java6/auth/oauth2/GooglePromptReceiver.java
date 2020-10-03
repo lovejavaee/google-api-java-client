@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package com.google.api.client.googleapis.extensions.java6.auth.oauth2;
 
 import com.google.api.client.extensions.java6.auth.oauth2.AbstractPromptReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleOAuthConstants;
-
 import java.io.IOException;
 
 /**

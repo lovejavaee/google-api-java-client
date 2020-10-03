@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -32,7 +32,6 @@ import com.google.api.client.util.Clock;
 import com.google.api.client.util.Preconditions;
 import com.google.api.client.util.store.DataStore;
 import com.google.api.client.util.store.DataStoreFactory;
-
 import java.io.IOException;
 import java.util.Collection;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -21,11 +21,9 @@ import com.google.api.client.json.webtoken.JsonWebSignature.Header;
 import com.google.api.client.testing.http.FixedClock;
 import com.google.api.client.util.Clock;
 import com.google.api.client.util.Lists;
-
-import junit.framework.TestCase;
-
 import java.util.Arrays;
 import java.util.List;
+import junit.framework.TestCase;
 
 /**
  * Tests {@link GoogleIdTokenVerifier}.

@@ -12,12 +12,10 @@
 
 package com.google.api.client.googleapis.extensions.android.gms.auth;
 
+import android.app.Activity;
 import com.google.android.gms.auth.GooglePlayServicesAvailabilityException;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.api.client.util.Beta;
-
-import android.app.Activity;
-
 import java.io.IOException;
 
 /**
@@ -52,7 +50,11 @@ public class GooglePlayServicesAvailabilityIOException extends UserRecoverableAu
 
   private static final long serialVersionUID = 1L;
 
-  GooglePlayServicesAvailabilityIOException(GooglePlayServicesAvailabilityException wrapped) {
+  /**
+   * @since 1.21.0
+   */
+  public GooglePlayServicesAvailabilityIOException(
+      GooglePlayServicesAvailabilityException wrapped) {
     super(wrapped);
   }
 

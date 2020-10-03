@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.google.api-client</groupId>
     <artifactId>google-api-client-parent</artifactId>
-    <version>1.20.0</version>
+    <version>1.30.11-SNAPSHOT</version><!-- {x-version-update:google-api-client:current} -->
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>google-api-client-jackson2</artifactId>
@@ -15,8 +15,8 @@
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <links>
-            <link>http://download.oracle.com/javase/1.5.0/docs/api/</link>
-            <link>http://javadoc.google-http-java-client.googlecode.com/hg/${project.http.version}</link>
+            <link>http://download.oracle.com/javase/7/docs/api/</link>
+            <link>https://googleapis.dev/java/google-http-client/${project.http.version}/</link>
           </links>
           <doctitle>${project.name} ${project.version}</doctitle>
           <windowtitle>${project.artifactId} ${project.version}</windowtitle>
@@ -26,20 +26,36 @@
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <archive>
+            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
             <manifest>
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
+            <manifestEntries>
+              <Automatic-Module-Name>google.api.client.jackson2</Automatic-Module-Name>
+            </manifestEntries>
           </archive>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>2.5.4</version>
         <executions>
           <execution>
-            <id>jar</id>
-            <phase>compile</phase>
+            <id>bundle-manifest</id>
+            <phase>process-classes</phase>
             <goals>
-              <goal>jar</goal>
+              <goal>manifest</goal>
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <instructions>
+            <Bundle-DocURL>https://googleapis.dev/java/google-api-client/${project.version}/index.html</Bundle-DocURL>
+            <Bundle-Description>Low-level implementation of the JSON parser library based on the Jackson 2 JSON library.</Bundle-Description>
+            <Bundle-SymbolicName>com.google.api.client.jackson2</Bundle-SymbolicName>
+          </instructions>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-source-plugin</artifactId>

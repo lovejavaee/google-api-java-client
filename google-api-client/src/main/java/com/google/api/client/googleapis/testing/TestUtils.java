@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Google Inc.
+ * Copyright 2014 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package com.google.api.client.googleapis.testing;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.HashMap;

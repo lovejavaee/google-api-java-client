@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Google Inc.
+ * Copyright 2010 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,14 +23,11 @@ import com.google.api.client.testing.http.HttpTesting;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
-import junit.framework.TestCase;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
+import junit.framework.TestCase;
 
 /**
  * Tests {@link MethodOverride}.
@@ -39,12 +36,21 @@ import java.util.List;
  */
 public class MethodOverrideTest extends TestCase {
 
-  private static final List<String> OVERRIDDEN_METHODS = ImmutableList.of(
-      "FOO", HttpMethods.DELETE, HttpMethods.HEAD, HttpMethods.OPTIONS, HttpMethods.PATCH,
-      HttpMethods.PUT, HttpMethods.TRACE);
+  private static final ImmutableList<String> OVERRIDDEN_METHODS =
+      ImmutableList.of(
+          "FOO",
+          HttpMethods.DELETE,
+          HttpMethods.HEAD,
+          HttpMethods.OPTIONS,
+          HttpMethods.PATCH,
+          HttpMethods.PUT,
+          HttpMethods.TRACE);
 
-  private static final List<String> SUPPORTED_METHODS = ImmutableList.<String>builder()
-      .addAll(OVERRIDDEN_METHODS).add(HttpMethods.GET, HttpMethods.POST).build();
+  private static final ImmutableList<String> SUPPORTED_METHODS =
+      ImmutableList.<String>builder()
+          .addAll(OVERRIDDEN_METHODS)
+          .add(HttpMethods.GET, HttpMethods.POST)
+          .build();
 
   public MethodOverrideTest(String name) {
     super(name);

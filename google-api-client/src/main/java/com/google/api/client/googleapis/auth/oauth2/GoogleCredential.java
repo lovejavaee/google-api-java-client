@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Google Inc.
+ * Copyright 2011 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -41,7 +41,6 @@ import com.google.api.client.util.PemReader.Section;
 import com.google.api.client.util.Preconditions;
 import com.google.api.client.util.SecurityUtils;
 import com.google.api.client.util.store.DataStoreFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
@@ -164,7 +163,11 @@ import java.util.Collections;
  *
  * @since 1.7
  * @author Yaniv Inbar
+ * @deprecated Please use <a href="https://github.com/googleapis/google-auth-library-java">
+ *   google-auth-library</a> for handling Application Default Credentials and other non-OAuth2
+ *   based authentication.
  */
+@Deprecated
 public class GoogleCredential extends Credential {
 
   static final String USER_FILE_TYPE = "authorized_user";
@@ -272,6 +275,12 @@ public class GoogleCredential extends Credential {
   private String serviceAccountId;
 
   /**
+   * Service account Project ID or {@code null} if not present, either because this is not using the
+   * service account flow, or is using an older version of the service account configuration.
+   */
+  private String serviceAccountProjectId;
+
+  /**
    * Collection of OAuth scopes to use with the service account flow or {@code null} if not
    * using the service account flow.
    */
@@ -318,7 +327,11 @@ public class GoogleCredential extends Credential {
           && builder.serviceAccountScopes == null && builder.serviceAccountUser == null);
     } else {
       serviceAccountId = Preconditions.checkNotNull(builder.serviceAccountId);
-      serviceAccountScopes = Collections.unmodifiableCollection(builder.serviceAccountScopes);
+      serviceAccountProjectId = builder.serviceAccountProjectId;
+      serviceAccountScopes =
+          (builder.serviceAccountScopes == null)
+              ? Collections.<String>emptyList()
+              : Collections.unmodifiableCollection(builder.serviceAccountScopes);
       serviceAccountPrivateKey = builder.serviceAccountPrivateKey;
       serviceAccountPrivateKeyId = builder.serviceAccountPrivateKeyId;
       serviceAccountUser = builder.serviceAccountUser;
@@ -398,6 +411,15 @@ public class GoogleCredential extends Credential {
   }
 
   /**
+   * Returns the service account Project ID or {@code null} if not present, either because this is
+   * not using the service account flow, or is using an older version of the service account
+   * configuration.
+   */
+  public final String getServiceAccountProjectId() {
+    return serviceAccountProjectId;
+  }
+
+  /**
    * Returns a collection of OAuth scopes to use with the service account flow or {@code null}
    * if not using the service account flow.
    */
@@ -464,16 +486,47 @@ public class GoogleCredential extends Credential {
     if (serviceAccountPrivateKey == null) {
       return this;
     }
-    return new GoogleCredential.Builder()
+    return toBuilder()
+        .setServiceAccountScopes(scopes)
+        .build();
+  }
+
+  /**
+   * {@link Beta} <br/>
+   * For service accounts that need to delegate to a specific user, create a
+   * copy of the credential with the specified user.
+   */
+  @Beta
+  public GoogleCredential createDelegated(String user) {
+    if (serviceAccountPrivateKey == null) {
+      return this;
+    }
+    return toBuilder()
+        .setServiceAccountUser(user)
+        .build();
+  }
+
+  /**
+   * {@link Beta} <br/>
+   * Create a builder from this credential.
+   */
+  @Beta
+  public Builder toBuilder() {
+    Builder builder = new GoogleCredential.Builder()
         .setServiceAccountPrivateKey(serviceAccountPrivateKey)
         .setServiceAccountPrivateKeyId(serviceAccountPrivateKeyId)
         .setServiceAccountId(serviceAccountId)
+        .setServiceAccountProjectId(serviceAccountProjectId)
         .setServiceAccountUser(serviceAccountUser)
-        .setServiceAccountScopes(scopes)
+        .setServiceAccountScopes(serviceAccountScopes)
+        .setTokenServerEncodedUrl(getTokenServerEncodedUrl())
         .setTransport(getTransport())
         .setJsonFactory(getJsonFactory())
-        .setClock(getClock())
-        .build();
+        .setClock(getClock());
+
+    builder.setClientAuthentication(getClientAuthentication());
+
+    return builder;
   }
 
   /**
@@ -498,6 +551,9 @@ public class GoogleCredential extends Credential {
 
     /** Id of the private key to use with the service account flow or {@code null} for none. */
     String serviceAccountPrivateKeyId;
+
+    /** Project ID associated with the Service Account. */
+    String serviceAccountProjectId;
 
     /**
      * Email address of the user the application is trying to impersonate in the service account
@@ -582,6 +638,26 @@ public class GoogleCredential extends Credential {
     }
 
     /**
+     * Returns the service account Project ID or {@code null} for none.
+     */
+    public final String getServiceAccountProjectId() {
+      return serviceAccountProjectId;
+    }
+
+    /**
+     * Sets the service account Project ID or {@code null} for none.
+     *
+     * <p>
+     * Overriding is only supported for the purpose of calling the super implementation and changing
+     * the return type, but nothing else.
+     * </p>
+     */
+    public Builder setServiceAccountProjectId(String serviceAccountProjectId) {
+      this.serviceAccountProjectId = serviceAccountProjectId;
+      return this;
+    }
+
+    /**
      * Returns a collection of OAuth scopes to use with the service account flow or {@code null}
      * for none.
      */
@@ -662,15 +738,31 @@ public class GoogleCredential extends Credential {
      * the return type, but nothing else.
      * </p>
      *
-     * @param p12File input stream to the p12 file (closed at the end of this method in a finally
-     *        block)
+     * @param p12File p12 file object
      */
     public Builder setServiceAccountPrivateKeyFromP12File(File p12File)
         throws GeneralSecurityException, IOException {
-      serviceAccountPrivateKey = SecurityUtils.loadPrivateKeyFromKeyStore(
-          SecurityUtils.getPkcs12KeyStore(), new FileInputStream(p12File), "notasecret",
-          "privatekey", "notasecret");
+      setServiceAccountPrivateKeyFromP12File(new FileInputStream(p12File));
       return this;
+    }
+
+    /**
+     * Sets the private key to use with the service account flow or {@code null} for none.
+     *
+     * <p>
+     * Overriding is only supported for the purpose of calling the super implementation and changing
+     * the return type, but nothing else.
+     * </p>
+     *
+     * @param p12FileInputStream input stream to the p12 file. This file is closed at the end of
+     *         this method in a finally block.
+     */
+    public Builder setServiceAccountPrivateKeyFromP12File(InputStream p12FileInputStream)
+            throws GeneralSecurityException, IOException {
+        serviceAccountPrivateKey = SecurityUtils.loadPrivateKeyFromKeyStore(
+                SecurityUtils.getPkcs12KeyStore(), p12FileInputStream, "notasecret",
+                "privatekey", "notasecret");
+        return this;
     }
 
     /**
@@ -779,7 +871,8 @@ public class GoogleCredential extends Credential {
     String clientEmail = (String) fileContents.get("client_email");
     String privateKeyPem = (String) fileContents.get("private_key");
     String privateKeyId = (String) fileContents.get("private_key_id");
-    if (clientId == null || clientEmail == null || privateKeyPem == null || privateKeyId == null) {
+    if (clientId == null || clientEmail == null || privateKeyPem == null
+        || privateKeyId == null) {
       throw new IOException("Error reading service account credential from stream, "
           + "expecting  'client_id', 'client_email', 'private_key' and 'private_key_id'.");
     }
@@ -788,17 +881,24 @@ public class GoogleCredential extends Credential {
 
     Collection<String> emptyScopes = Collections.emptyList();
 
-    GoogleCredential credential = new GoogleCredential.Builder()
+    Builder credentialBuilder = new GoogleCredential.Builder()
         .setTransport(transport)
         .setJsonFactory(jsonFactory)
         .setServiceAccountId(clientEmail)
         .setServiceAccountScopes(emptyScopes)
         .setServiceAccountPrivateKey(privateKey)
-        .setServiceAccountPrivateKeyId(privateKeyId)
-        .build();
+        .setServiceAccountPrivateKeyId(privateKeyId);
+    String tokenUri = (String) fileContents.get("token_uri");
+    if (tokenUri != null) {
+      credentialBuilder.setTokenServerEncodedUrl(tokenUri);
+    }
+    String projectId = (String) fileContents.get("project_id");
+    if (projectId != null) {
+      credentialBuilder.setServiceAccountProjectId(projectId);
+    }
 
     // Don't do a refresh at this point, as it will always fail before the scopes are added.
-    return credential;
+    return credentialBuilder.build();
   }
 
   @Beta

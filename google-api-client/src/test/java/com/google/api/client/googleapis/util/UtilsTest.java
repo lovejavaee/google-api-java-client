@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,13 +18,11 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
-
-import junit.framework.TestCase;
-
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
+import junit.framework.TestCase;
 
 /**
  * Tests {@link Utils}.

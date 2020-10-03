@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.google.api-client</groupId>
     <artifactId>google-api-client-parent</artifactId>
-    <version>1.20.0</version>
+    <version>1.30.11-SNAPSHOT</version><!-- {x-version-update:google-api-client:current} -->
     <relativePath>../pom.xml</relativePath>
   </parent>
   <groupId>com.google.api-client</groupId>
@@ -13,16 +13,6 @@
   <name>Assembly for the Google APIs Client Library for Java</name>
 
   <dependencies>
-    <dependency>
-      <groupId>com.google.http-client</groupId>
-      <artifactId>google-http-client-assembly</artifactId>
-      <type>pom</type>
-    </dependency>
-    <dependency>
-      <groupId>com.google.oauth-client</groupId>
-      <artifactId>google-oauth-client-assembly</artifactId>
-      <type>pom</type>
-    </dependency>
     <dependency>
       <groupId>com.google.api-client</groupId>
       <artifactId>google-api-client</artifactId>
@@ -62,6 +52,19 @@
   </dependencies>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <configuration>
+            <descriptors>
+              <descriptor>assembly.xml</descriptor>
+            </descriptors>
+            <finalName>google-api-java-client</finalName>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -102,12 +105,6 @@
             <goals>
               <goal>single</goal>
             </goals>
-            <configuration>
-              <descriptors>
-                <descriptor>assembly.xml</descriptor>
-              </descriptors>
-              <finalName>google-api-java-client</finalName>
-            </configuration>
           </execution>
         </executions>
       </plugin>

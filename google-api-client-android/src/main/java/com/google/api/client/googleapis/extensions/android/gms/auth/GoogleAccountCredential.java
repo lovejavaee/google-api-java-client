@@ -12,6 +12,9 @@
 
 package com.google.api.client.googleapis.extensions.android.gms.auth;
 
+import android.accounts.Account;
+import android.content.Context;
+import android.content.Intent;
 import com.google.android.gms.auth.GoogleAuthException;
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.auth.GooglePlayServicesAvailabilityException;
@@ -30,11 +33,6 @@ import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.client.util.Joiner;
 import com.google.api.client.util.Preconditions;
 import com.google.api.client.util.Sleeper;
-
-import android.accounts.Account;
-import android.content.Context;
-import android.content.Intent;
-
 import java.io.IOException;
 import java.util.Collection;
 
@@ -140,6 +138,20 @@ public class GoogleAccountCredential implements HttpRequestInitializer {
     return this;
   }
 
+  /**
+   * Sets the selected Google {@link Account} or {@code null} for none.
+   *
+   * <p>
+   * Caller must ensure the given Google account exists.
+   * </p>
+   */
+  public final GoogleAccountCredential setSelectedAccount(Account selectedAccount) {
+    this.selectedAccount = selectedAccount;
+    this.accountName = selectedAccount == null ? null : selectedAccount.name;
+    return this;
+  }
+
+  @Override
   public void initialize(HttpRequest request) {
     RequestHandler handler = new RequestHandler();
     request.setInterceptor(handler);
@@ -274,6 +286,7 @@ public class GoogleAccountCredential implements HttpRequestInitializer {
     boolean received401;
     String token;
 
+    @Override
     public void intercept(HttpRequest request) throws IOException {
       try {
         token = getToken();
@@ -287,12 +300,17 @@ public class GoogleAccountCredential implements HttpRequestInitializer {
       }
     }
 
-    public boolean handleResponse(
-        HttpRequest request, HttpResponse response, boolean supportsRetry) {
-      if (response.getStatusCode() == 401 && !received401) {
-        received401 = true;
-        GoogleAuthUtil.invalidateToken(context, token);
-        return true;
+    @Override
+    public boolean handleResponse(HttpRequest request, HttpResponse response, boolean supportsRetry)
+        throws IOException {
+      try {
+        if (response.getStatusCode() == 401 && !received401) {
+          received401 = true;
+          GoogleAuthUtil.clearToken(context, token);
+          return true;
+        }
+      } catch (GoogleAuthException e) {
+        throw new GoogleAuthIOException(e);
       }
       return false;
     }

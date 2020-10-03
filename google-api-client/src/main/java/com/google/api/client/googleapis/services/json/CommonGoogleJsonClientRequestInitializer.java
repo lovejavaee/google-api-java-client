@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package com.google.api.client.googleapis.services.json;
 
 import com.google.api.client.googleapis.services.AbstractGoogleClientRequest;
 import com.google.api.client.googleapis.services.CommonGoogleClientRequestInitializer;
-
 import java.io.IOException;
 
 /**
@@ -28,7 +27,9 @@ import java.io.IOException;
  *
  * <pre>
   public static final GoogleClientRequestInitializer KEY_INITIALIZER =
-      new CommonGoogleJsonClientRequestInitializer(KEY);
+      CommonGoogleJsonClientRequestInitializer.newBuilder()
+          .setKey(KEY)
+          .build();
  * </pre>
  *
  * <p>
@@ -37,7 +38,10 @@ import java.io.IOException;
  *
  * <pre>
   public static final GoogleClientRequestInitializer INITIALIZER =
-      new CommonGoogleJsonClientRequestInitializer(KEY, USER_IP);
+      CommonGoogleJsonClientRequestInitializer.newBuilder()
+          .setKey(KEY)
+          .setUserIp(USER_IP)
+          .build();
  * </pre>
  *
  * <p>
@@ -83,13 +87,19 @@ import java.io.IOException;
  */
 public class CommonGoogleJsonClientRequestInitializer extends CommonGoogleClientRequestInitializer {
 
+  /**
+   * @deprecated Please use the builder interface
+   */
+  @Deprecated
   public CommonGoogleJsonClientRequestInitializer() {
     super();
   }
 
   /**
    * @param key API key or {@code null} to leave it unchanged
+   * @deprecated Please use the builder interface
    */
+  @Deprecated
   public CommonGoogleJsonClientRequestInitializer(String key) {
     super(key);
   }
@@ -97,7 +107,9 @@ public class CommonGoogleJsonClientRequestInitializer extends CommonGoogleClient
   /**
    * @param key API key or {@code null} to leave it unchanged
    * @param userIp user IP or {@code null} to leave it unchanged
+   * @deprecated Please use the builder interface
    */
+  @Deprecated
   public CommonGoogleJsonClientRequestInitializer(String key, String userIp) {
     super(key, userIp);
   }
@@ -120,5 +132,17 @@ public class CommonGoogleJsonClientRequestInitializer extends CommonGoogleClient
    */
   protected void initializeJsonRequest(AbstractGoogleJsonClientRequest<?> request)
       throws IOException {
+  }
+
+  /**
+   * Builder for {@code CommonGoogleJsonClientRequestInitializer}.
+   *
+   * @since 1.30
+   */
+  public static class Builder extends CommonGoogleClientRequestInitializer.Builder {
+    @Override
+    protected Builder self() {
+      return this;
+    }
   }
 }

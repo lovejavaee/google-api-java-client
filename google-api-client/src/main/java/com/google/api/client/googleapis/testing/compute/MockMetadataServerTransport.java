@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Google Inc.
+ * Copyright 2014 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,6 +14,7 @@
 
 package com.google.api.client.googleapis.testing.compute;
 
+import com.google.api.client.googleapis.auth.oauth2.OAuth2Utils;
 import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.json.GenericJson;
@@ -24,7 +25,6 @@ import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.api.client.util.Beta;
-
 import java.io.IOException;
 
 /**
@@ -36,11 +36,10 @@ import java.io.IOException;
 @Beta
 public class MockMetadataServerTransport extends MockHttpTransport {
 
+  private static final String METADATA_SERVER_URL = OAuth2Utils.getMetadataServerUrl();
+
   private static final String METADATA_TOKEN_SERVER_URL =
-      "http://metadata/computeMetadata/v1/instance/service-accounts/default/token";
-
-  private static final String METADATA_SERVER_URL = "http://metadata.google.internal";
-
+      METADATA_SERVER_URL + "/computeMetadata/v1/instance/service-accounts/default/token";
 
   static final JsonFactory JSON_FACTORY = new JacksonFactory();
 
@@ -71,8 +70,8 @@ public class MockMetadataServerTransport extends MockHttpTransport {
             return response;
           }
 
-          String metadataRequestHeader = getFirstHeaderValue("X-Google-Metadata-Request");
-          if (!"true".equals(metadataRequestHeader)) {
+          String metadataRequestHeader = getFirstHeaderValue("Metadata-Flavor");
+          if (!"Google".equals(metadataRequestHeader)) {
             throw new IOException("Metadata request header not found.");
           }
 

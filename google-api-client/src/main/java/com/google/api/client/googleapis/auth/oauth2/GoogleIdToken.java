@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,7 +19,6 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.util.Beta;
 import com.google.api.client.util.Key;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
@@ -27,7 +26,7 @@ import java.util.List;
 /**
  * {@link Beta} <br/>
  * Google ID tokens as specified in <a
- * href="https://developers.google.com/accounts/docs/OAuth2Login">Using OAuth 2.0 for Login</a>.
+ * href="https://developers.google.com/identity/protocols/OpenIDConnect">OpenID Connect</a>.
  *
  * <p>
  * Google ID tokens contain useful information about the authorized end user. Google ID tokens are

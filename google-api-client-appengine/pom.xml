@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.google.api-client</groupId>
     <artifactId>google-api-client-parent</artifactId>
-    <version>1.20.0</version>
+    <version>1.30.11-SNAPSHOT</version><!-- {x-version-update:google-api-client:current} -->
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>google-api-client-appengine</artifactId>
@@ -15,10 +15,10 @@
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <links>
-            <link>http://download.oracle.com/javase/6/docs/api/</link>
-            <link>http://code.google.com/appengine/docs/java/javadoc</link>
-            <link>http://javadoc.google-http-java-client.googlecode.com/hg/${project.http.version}</link>
-            <link>http://javadoc.google-oauth-java-client.googlecode.com/hg/${project.oauth.version}</link>
+            <link>http://download.oracle.com/javase/7/docs/api/</link>
+            <link>https://cloud.google.com/appengine/docs/standard/java/javadoc/</link>
+            <link>https://googleapis.dev/java/google-http-client/${project.http.version}/</link>
+            <link>https://googleapis.dev/java/google-oauth-client/${project.oauth.version}/</link>
           </links>
           <doctitle>${project.name} ${project.version}</doctitle>
           <windowtitle>${project.artifactId} ${project.version}</windowtitle>
@@ -28,20 +28,36 @@
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <archive>
+            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
             <manifest>
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
+            <manifestEntries>
+              <Automatic-Module-Name>google.api.client.appengine</Automatic-Module-Name>
+            </manifestEntries>
           </archive>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>2.5.4</version>
         <executions>
           <execution>
-            <id>jar</id>
-            <phase>compile</phase>
+            <id>bundle-manifest</id>
+            <phase>process-classes</phase>
             <goals>
-              <goal>jar</goal>
+              <goal>manifest</goal>
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <instructions>
+            <Bundle-DocURL>https://googleapis.dev/java/google-api-client/${project.version}/index.html</Bundle-DocURL>
+            <Bundle-Description>App Engine extensions to the Google APIs Client Library for Java</Bundle-Description>
+            <Bundle-SymbolicName>com.google.api.client.appengine</Bundle-SymbolicName>
+          </instructions>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
@@ -55,22 +71,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.datanucleus</groupId>
-        <artifactId>maven-datanucleus-plugin</artifactId>
-        <version>2.2.1</version>
-        <configuration>
-          <verbose>true</verbose>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>enhance</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
       <!--App Engine uses Java 6 and above-->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -78,7 +78,7 @@
         <configuration>
           <signature>
             <groupId>org.codehaus.mojo.signature</groupId>
-            <artifactId>java16</artifactId>
+            <artifactId>java17</artifactId>
             <version>1.0</version>
           </signature>
         </configuration>
@@ -114,28 +114,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.google.appengine</groupId>
-      <artifactId>appengine-testing</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.appengine</groupId>
-      <artifactId>appengine-api-labs</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.appengine</groupId>
-      <artifactId>appengine-api-stubs</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>com.google.http-client</groupId>
       <artifactId>google-http-client-jackson2</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
-      <artifactId>guava-jdk5</artifactId>
+      <artifactId>guava</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

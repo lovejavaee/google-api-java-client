@@ -2,6 +2,8 @@
 
 package com.google.api.client.googleapis.batch;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.api.client.googleapis.batch.BatchRequest.RequestInfo;
 import com.google.api.client.googleapis.json.GoogleJsonError;
 import com.google.api.client.googleapis.json.GoogleJsonError.ErrorInfo;
@@ -32,9 +34,6 @@ import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.api.client.util.Charsets;
 import com.google.api.client.util.Key;
 import com.google.api.client.util.ObjectParser;
-
-import junit.framework.TestCase;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -42,13 +41,13 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import junit.framework.TestCase;
 
 /**
  * Tests {@link BatchRequest}.
  *
  * @author rmistry@google.com (Ravi Mistry)
  */
-@SuppressWarnings("deprecation")
 public class BatchRequestTest extends TestCase {
 
   private static final String ROOT_URL = "http://www.test.com/";
@@ -301,19 +300,16 @@ public class BatchRequestTest extends TestCase {
     final boolean testAuthenticationError;
     boolean returnSuccessAuthenticatedContent;
     boolean returnErrorAuthenticatedContent;
-    final boolean testExponentialBackOff;
     final boolean testRedirect;
     final boolean testBinary;
     final boolean testMissingLength;
     int actualCalls;
     int callsBeforeSuccess;
 
-    MockTransport(boolean testServerError, boolean testAuthenticationError,
-        boolean testExponentialBackOff, boolean testRedirect, boolean testBinary,
+    MockTransport(boolean testServerError, boolean testAuthenticationError, boolean testRedirect, boolean testBinary,
         boolean testMissingLength) {
       this.testServerError = testServerError;
       this.testAuthenticationError = testAuthenticationError;
-      this.testExponentialBackOff = testExponentialBackOff;
       this.testRedirect = testRedirect;
       this.testBinary = testBinary;
       this.testMissingLength = testMissingLength;
@@ -355,8 +351,7 @@ public class BatchRequestTest extends TestCase {
                   + "\"code\": " + ERROR_CODE + ", \"message\": \"" + ERROR_MSG + "\"}}");
           ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
           Writer responseContent = new OutputStreamWriter(outputStream, "ISO-8859-1");
-          if (returnSuccessAuthenticatedContent || (testExponentialBackOff && actualCalls > 1)
-              || (testRedirect && actualCalls > 1)) {
+          if (returnSuccessAuthenticatedContent || (testRedirect && actualCalls > 1)) {
             if (returnSuccessAuthenticatedContent || actualCalls == callsBeforeSuccess) {
               responseContent.append("--" + RESPONSE_BOUNDARY + "\n")
                   .append("Content-Type: application/http\n")
@@ -483,13 +478,11 @@ public class BatchRequestTest extends TestCase {
   private BatchRequest getBatchPopulatedWithRequests(boolean testServerError,
       boolean testAuthenticationError,
       boolean returnSuccessAuthenticatedContent,
-      boolean testExponentialBackOff,
       boolean testRedirect,
       boolean testBinary,
-      boolean testMissingLength) throws Exception {
+      boolean testMissingLength) throws IOException {
     transport = new MockTransport(testServerError,
         testAuthenticationError,
-        testExponentialBackOff,
         testRedirect,
         testBinary,
         testMissingLength);
@@ -514,9 +507,6 @@ public class BatchRequestTest extends TestCase {
       request2.setUnsuccessfulResponseHandler(
           new MockUnsuccessfulResponseHandler(transport, returnSuccessAuthenticatedContent));
     }
-    if (testExponentialBackOff) {
-      request2.setBackOffPolicy(new MockExponentialBackOffPolicy());
-    }
 
     if (testBinary) {
       batchRequest.queue(request1, MockData.Class1.class, ErrorOutput.ErrorBody.class,
@@ -532,7 +522,7 @@ public class BatchRequestTest extends TestCase {
 
   public void testQueueDatastructures() throws Exception {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(false, false, false, false, false, false, false);
+        getBatchPopulatedWithRequests(false, false, false, false, false, false);
     List<RequestInfo<?, ?>> requestInfos = batchRequest.requestInfos;
 
     // Assert that the expected objects are queued.
@@ -550,9 +540,9 @@ public class BatchRequestTest extends TestCase {
     assertEquals(METHOD2, requestInfos.get(1).request.getRequestMethod());
   }
 
-  public void testExecute() throws Exception {
+  public void testExecute() throws IOException {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(false, false, false, false, false, false, false);
+        getBatchPopulatedWithRequests(false, false, false, false, false, false);
     batchRequest.execute();
     // Assert callbacks have been invoked.
     assertEquals(1, callback1.successCalls);
@@ -562,9 +552,9 @@ public class BatchRequestTest extends TestCase {
     assertTrue(batchRequest.requestInfos.isEmpty());
   }
 
-  public void testExecuteWithError() throws Exception {
+  public void testExecuteWithError() throws IOException {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(true, false, false, false, false, false, false);
+        getBatchPopulatedWithRequests(true, false, false, false, false, false);
     batchRequest.execute();
     // Assert callbacks have been invoked.
     assertEquals(1, callback1.successCalls);
@@ -592,8 +582,8 @@ public class BatchRequestTest extends TestCase {
     assertEquals(1, callback3.failureCalls);
   }
 
-  public void subTestExecuteWithVoidCallback(boolean testServerError) throws Exception {
-    MockTransport transport = new MockTransport(testServerError, false, false, false, false, false);
+  public void subTestExecuteWithVoidCallback(boolean testServerError) throws IOException {
+    MockTransport transport = new MockTransport(testServerError, false,false, false, false);
     MockGoogleClient client = new MockGoogleClient.Builder(
         transport, ROOT_URL, SERVICE_PATH, null, null).setApplicationName("Test Application")
         .build();
@@ -617,7 +607,7 @@ public class BatchRequestTest extends TestCase {
 
   public void testExecuteWithAuthenticationErrorThenSuccessCallback() throws Exception {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(false, true, true, false, false, false, false);
+        getBatchPopulatedWithRequests(false, true, true, false, false, false);
     batchRequest.execute();
     // Assert callbacks have been invoked.
     assertEquals(1, callback1.successCalls);
@@ -631,7 +621,7 @@ public class BatchRequestTest extends TestCase {
 
   public void testExecuteWithAuthenticationErrorThenErrorCallback() throws Exception {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(false, true, false, false, false, false, false);
+        getBatchPopulatedWithRequests(false, true, false, false, false, false);
     batchRequest.execute();
     // Assert callbacks have been invoked.
     assertEquals(1, callback1.successCalls);
@@ -639,42 +629,13 @@ public class BatchRequestTest extends TestCase {
     assertEquals(1, callback2.failureCalls);
     // Assert transport called expected number of times.
     assertEquals(2, transport.actualCalls);
-    // Assert requestInfos is empty after execute.
-    assertTrue(batchRequest.requestInfos.isEmpty());
-  }
-
-  public void testExecuteWithExponentialBackoffThenSuccessCallback() throws Exception {
-    BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(true, false, false, true, false, false, false);
-    transport.callsBeforeSuccess = 2;
-    batchRequest.execute();
-    // Assert callbacks have been invoked.
-    assertEquals(1, callback1.successCalls);
-    assertEquals(1, callback2.successCalls);
-    // Assert transport called expected number of times.
-    assertEquals(2, transport.actualCalls);
-    // Assert requestInfos is empty after execute.
-    assertTrue(batchRequest.requestInfos.isEmpty());
-  }
-
-  public void testExecuteWithExponentialBackoffThenErrorCallback() throws Exception {
-    BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(true, false, false, true, false, false, false);
-    transport.callsBeforeSuccess = 20;
-    batchRequest.execute();
-    // Assert callbacks have been invoked.
-    assertEquals(1, callback1.successCalls);
-    assertEquals(0, callback2.successCalls);
-    assertEquals(1, callback2.failureCalls);
-    // Assert transport called expected number of times.
-    assertEquals(11, transport.actualCalls);
     // Assert requestInfos is empty after execute.
     assertTrue(batchRequest.requestInfos.isEmpty());
   }
 
   public void testInterceptor() throws Exception {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(true, false, false, true, false, false, false);
+        getBatchPopulatedWithRequests(true, false, false, false, false, false);
     batchRequest.execute();
     // Assert the top-level request initializer is called.
     assertTrue(credential.initializerCalled);
@@ -683,7 +644,7 @@ public class BatchRequestTest extends TestCase {
 
   public void testRedirect() throws Exception {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(false, false, false, false, true, false, false);
+        getBatchPopulatedWithRequests(false, false, false, true, false, false);
     transport.callsBeforeSuccess = 2;
     batchRequest.execute();
     // Assert transport called expected number of times.
@@ -700,39 +661,49 @@ public class BatchRequestTest extends TestCase {
 
     String request2Method = HttpMethods.GET;
     String request2Url = "http://test/dummy/url2";
-
-    final StringBuilder expectedOutput = new StringBuilder();
-    expectedOutput.append("--__END_OF_PART__\r\n");
-    expectedOutput.append("Content-Length: 109\r\n");
-    expectedOutput.append("Content-Type: application/http\r\n");
-    expectedOutput.append("content-id: 1\r\n");
-    expectedOutput.append("content-transfer-encoding: binary\r\n");
-    expectedOutput.append("\r\n");
-    expectedOutput.append("POST http://test/dummy/url1\r\n");
-    expectedOutput.append("Content-Length: 26\r\n");
-    expectedOutput.append("Content-Type: " + request1ContentType + "\r\n");
-    expectedOutput.append("\r\n");
-    expectedOutput.append(request1Content + "\r\n");
-    expectedOutput.append("--__END_OF_PART__\r\n");
-    expectedOutput.append("Content-Length: 28\r\n");
-    expectedOutput.append("Content-Type: application/http\r\n");
-    expectedOutput.append("content-id: 2\r\n");
-    expectedOutput.append("content-transfer-encoding: binary\r\n");
-    expectedOutput.append("\r\n");
-    expectedOutput.append("GET http://test/dummy/url2\r\n");
-    expectedOutput.append("\r\n");
-    expectedOutput.append("--__END_OF_PART__--\r\n");
+    
+    // MIME content boundaries are not reproducible.
+    StringBuilder part1 = new StringBuilder();
+    part1.append("Content-Length: 118\r\n");
+    part1.append("Content-Type: application/http\r\n");
+    part1.append("content-id: 1\r\n");
+    part1.append("content-transfer-encoding: binary\r\n");
+    part1.append("\r\n");
+    part1.append("POST http://test/dummy/url1 HTTP/1.1\r\n");
+    part1.append("Content-Length: 26\r\n");
+    part1.append("Content-Type: " + request1ContentType + "\r\n");
+    part1.append("\r\n");
+    part1.append(request1Content + "\r\n");
+    part1.append("--__END_OF_PART__");
+    String expected1 = part1.toString();
+    
+    StringBuilder part2 = new StringBuilder();
+    part2.append("Content-Length: 39\r\n");
+    part2.append("Content-Type: application/http\r\n");
+    part2.append("content-id: 2\r\n");
+    part2.append("content-transfer-encoding: binary\r\n");
+    part2.append("\r\n");
+    part2.append("GET http://test/dummy/url2 HTTP/1.1\r\n");
+    part2.append("\r\n");
+    part2.append("\r\n");
+    part2.append("--__END_OF_PART__");
+    String expected2 = part2.toString();
+    
     MockHttpTransport transport = new MockHttpTransport();
-    HttpRequest request1 = transport.createRequestFactory().buildRequest(
-        request1Method, new GenericUrl(request1Url),
-        new ByteArrayContent(request1ContentType, request1Content.getBytes()));
+    HttpRequest request1 =
+        transport
+            .createRequestFactory()
+            .buildRequest(
+                request1Method,
+                new GenericUrl(request1Url),
+                new ByteArrayContent(request1ContentType, request1Content.getBytes(UTF_8)));
     HttpRequest request2 = transport.createRequestFactory()
         .buildRequest(request2Method, new GenericUrl(request2Url), null);
-    subtestExecute_checkWriteTo(expectedOutput.toString(), request1, request2);
+    subtestExecute_checkWriteTo(expected1, expected2, request1, request2);
   }
 
-  private void subtestExecute_checkWriteTo(final String expectedOutput, HttpRequest... requests)
-      throws IOException {
+  private void subtestExecute_checkWriteTo(
+      final String part1, final String part2, HttpRequest... requests) throws IOException {
 
     MockHttpTransport transport = new MockHttpTransport() {
 
@@ -742,10 +713,12 @@ public class BatchRequestTest extends TestCase {
 
           @Override
           public LowLevelHttpResponse execute() throws IOException {
-            assertEquals("multipart/mixed; boundary=__END_OF_PART__", getContentType());
+            assertTrue(getContentType().startsWith("multipart/mixed; boundary=__END_OF_PART__"));
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             getStreamingContent().writeTo(out);
-            assertEquals(expectedOutput, out.toString("UTF-8"));
+            String actual = out.toString("UTF-8");
+            assertTrue(actual + "\n does not contain \n" + part1, actual.contains(part1));
+            assertTrue(actual.contains(part2));
             MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
             response.setStatusCode(200);
             response.addHeader("Content-Type", "multipart/mixed; boundary=" + RESPONSE_BOUNDARY);
@@ -782,9 +755,9 @@ public class BatchRequestTest extends TestCase {
     batchRequest.execute();
   }
 
-  public void testExecute_checkWriteToNoHeaders() throws Exception {
+  public void testExecute_checkWriteToNoHeaders() throws IOException {
     MockHttpTransport transport = new MockHttpTransport();
-    HttpRequest request1 = transport.createRequestFactory()
+    HttpRequest request = transport.createRequestFactory()
         .buildPostRequest(HttpTesting.SIMPLE_GENERIC_URL, new HttpContent() {
 
           @Override
@@ -806,16 +779,17 @@ public class BatchRequestTest extends TestCase {
             return true;
           }
         });
-    subtestExecute_checkWriteTo(new StringBuilder().append("--__END_OF_PART__\r\n")
-        .append("Content-Length: 27\r\n").append("Content-Type: application/http\r\n")
-        .append("content-id: 1\r\n").append("content-transfer-encoding: binary\r\n").append("\r\n")
-        .append("POST http://google.com/\r\n").append("\r\n").append("\r\n")
-        .append("--__END_OF_PART__--\r\n").toString(), request1);
+    String expected = new StringBuilder()
+      .append("Content-Length: 36\r\n").append("Content-Type: application/http\r\n")
+      .append("content-id: 1\r\n").append("content-transfer-encoding: binary\r\n").append("\r\n")
+      .append("POST http://google.com/ HTTP/1.1\r\n").append("\r\n").append("\r\n")
+      .append("--__END_OF_PART__").toString();
+    subtestExecute_checkWriteTo(expected, expected, request);
   }
 
-  public void testProtoExecute() throws Exception {
+  public void testProtoExecute() throws IOException {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(false, false, false, false, false, true, false);
+        getBatchPopulatedWithRequests(false, false, false, false, true, false);
     batchRequest.execute();
     // Assert callbacks have been invoked.
     assertEquals(1, callback1.successCalls);
@@ -825,9 +799,9 @@ public class BatchRequestTest extends TestCase {
     assertTrue(batchRequest.requestInfos.isEmpty());
   }
 
-  public void testProtoExecuteWithError() throws Exception {
+  public void testProtoExecuteWithError() throws IOException {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(true, false, false, false, false, true, false);
+        getBatchPopulatedWithRequests(true, false, false, false, true, false);
     batchRequest.execute();
     // Assert callbacks have been invoked.
     assertEquals(1, callback1.successCalls);
@@ -839,9 +813,9 @@ public class BatchRequestTest extends TestCase {
     assertEquals(1, transport.actualCalls);
   }
 
-  public void testProtoExecuteWithoutLength() throws Exception {
+  public void testProtoExecuteWithoutLength() throws IOException {
     BatchRequest batchRequest =
-        getBatchPopulatedWithRequests(false, false, false, false, false, true, true);
+        getBatchPopulatedWithRequests(false, false, false, false, true, true);
     batchRequest.execute();
     // Assert callbacks have been invoked.
     assertEquals(1, callback1.successCalls);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,6 +18,7 @@ import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.auth.oauth2.CredentialRefreshListener;
 import com.google.api.client.auth.oauth2.TokenResponse;
+import com.google.api.client.googleapis.auth.oauth2.OAuth2Utils;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpExecuteInterceptor;
 import com.google.api.client.http.HttpRequest;
@@ -28,7 +29,6 @@ import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.util.Beta;
 import com.google.api.client.util.Clock;
 import com.google.api.client.util.Preconditions;
-
 import java.io.IOException;
 import java.util.Collection;
 
@@ -60,8 +60,8 @@ import java.util.Collection;
 public class ComputeCredential extends Credential {
 
   /** Metadata Service Account token server encoded URL. */
-  public static final String TOKEN_SERVER_ENCODED_URL =
-      "http://metadata/computeMetadata/v1/instance/service-accounts/default/token";
+  public static final String TOKEN_SERVER_ENCODED_URL = OAuth2Utils.getMetadataServerUrl()
+      + "/computeMetadata/v1/instance/service-accounts/default/token";
 
   /**
    * @param transport HTTP transport
@@ -83,7 +83,7 @@ public class ComputeCredential extends Credential {
     GenericUrl tokenUrl = new GenericUrl(getTokenServerEncodedUrl());
     HttpRequest request = getTransport().createRequestFactory().buildGetRequest(tokenUrl);
     request.setParser(new JsonObjectParser(getJsonFactory()));
-    request.getHeaders().set("X-Google-Metadata-Request", true);
+    request.getHeaders().set("Metadata-Flavor", "Google");
     return request.execute().parseAs(TokenResponse.class);
   }
 

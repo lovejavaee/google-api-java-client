@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,13 +23,11 @@ import com.google.api.client.util.Preconditions;
 import com.google.api.client.util.StringUtils;
 import com.google.api.client.util.store.DataStore;
 import com.google.api.client.util.store.DataStoreFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;

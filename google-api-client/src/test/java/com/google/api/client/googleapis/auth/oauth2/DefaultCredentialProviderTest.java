@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Google Inc.
+ * Copyright 2014 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -26,27 +26,27 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
-
-import junit.framework.TestCase;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import junit.framework.TestCase;
 
 /**
  * Tests {@link DefaultCredentialProvider}.
  *
  */
-public class DefaultCredentialProviderTest  extends TestCase  {
+public class DefaultCredentialProviderTest extends TestCase {
 
   private static final JsonFactory JSON_FACTORY = new JacksonFactory();
 
@@ -108,6 +108,7 @@ public class DefaultCredentialProviderTest  extends TestCase  {
   public void testDefaultCredentialAppEngineWithoutDependencyThrowsHelpfulLoadError() {
     HttpTransport transport = new MockHttpTransport();
     TestDefaultCredentialProvider testProvider = new TestDefaultCredentialProvider();
+
     testProvider.addType(GAE_SIGNAL_CLASS, MockAppEngineSystemProperty.class);
 
     try {
@@ -118,24 +119,6 @@ public class DefaultCredentialProviderTest  extends TestCase  {
       assertFalse(message.contains(DefaultCredentialProvider.HELP_PERMALINK));
       assertTrue(message.contains(DefaultCredentialProvider.APP_ENGINE_CREDENTIAL_CLASS));
     }
-  }
-
-  public void testDefaultCredentialAppEngineSingleClassLoadAttempt() {
-    HttpTransport transport = new MockHttpTransport();
-    TestDefaultCredentialProvider testProvider = new TestDefaultCredentialProvider();
-    try {
-      testProvider.getDefaultCredential(transport, JSON_FACTORY);
-      fail("No credential expected for default test provider.");
-    } catch (IOException expected) {
-    }
-    assertEquals(1, testProvider.getForNameCallCount());
-    // Try a second time.
-    try {
-      testProvider.getDefaultCredential(transport, JSON_FACTORY);
-      fail("No credential expected for default test provider.");
-    } catch (IOException expected) {
-    }
-    assertEquals(1, testProvider.getForNameCallCount());
   }
 
   public void testDefaultCredentialCaches() throws IOException  {
@@ -152,6 +135,29 @@ public class DefaultCredentialProviderTest  extends TestCase  {
     Credential secondCall = testProvider.getDefaultCredential(transport, JSON_FACTORY);
 
     assertSame(firstCall, secondCall);
+  }
+
+  public void testGetDefaultCredentials_cloudshell() throws IOException {
+    HttpTransport transport = new MockHttpTransport();
+    TestDefaultCredentialProvider testProvider = new TestDefaultCredentialProvider();
+    testProvider.setEnv(DefaultCredentialProvider.CLOUD_SHELL_ENV_VAR, "4");
+
+    GoogleCredential defaultCredential = testProvider.getDefaultCredential(transport, JSON_FACTORY);
+
+    assertTrue(defaultCredential instanceof CloudShellCredential);
+    assertEquals(((CloudShellCredential) defaultCredential).getAuthPort(), 4);
+  }
+
+  public void testGetDefaultCredentials_cloudshell_withComputCredentialsPresent()
+      throws IOException {
+    MockMetadataServerTransport transport = new MockMetadataServerTransport(ACCESS_TOKEN);
+    TestDefaultCredentialProvider testProvider = new TestDefaultCredentialProvider();
+    testProvider.setEnv(DefaultCredentialProvider.CLOUD_SHELL_ENV_VAR, "4");
+
+    GoogleCredential defaultCredential = testProvider.getDefaultCredential(transport, JSON_FACTORY);
+
+    assertTrue(defaultCredential instanceof CloudShellCredential);
+    assertEquals(((CloudShellCredential) defaultCredential).getAuthPort(), 4);
   }
 
   public void testDefaultCredentialCompute() throws IOException {
@@ -201,22 +207,51 @@ public class DefaultCredentialProviderTest  extends TestCase  {
     }
   }
 
-  public void testDefaultCredentialComputeSingleAttempt() {
-    MockRequestCountingTransport transport = new MockRequestCountingTransport();
+  public void testDefaultCredentialComputeCachesFailureAfterFixedNumberOfRetries() {
+    MockRequestUrlRecordingTransport transport = new MockRequestUrlRecordingTransport();
     TestDefaultCredentialProvider testProvider = new TestDefaultCredentialProvider();
+
+    // First attempt to get credentials we retry.
+    try {
+      testProvider.getDefaultCredential(transport, JSON_FACTORY);
+      fail("No credential expected for default test provider.");
+    } catch (IOException expected) {
+    }
+    assertEquals(3, transport.getRequestCount());
+
+    // Second attempt we get back the cached result.
+    try {
+      testProvider.getDefaultCredential(transport, JSON_FACTORY);
+      fail("No credential expected for default test provider.");
+    } catch (IOException expected) {
+    }
+    assertEquals(3, transport.getRequestCount());
+  }
+
+  public void testDefaultCredentialNoGceCheck() throws IOException {
+    MockRequestUrlRecordingTransport transport = new MockRequestUrlRecordingTransport();
+    TestDefaultCredentialProvider testProvider = new TestDefaultCredentialProvider();
+    testProvider.setEnv("NO_GCE_CHECK", "True");
 
     try {
       testProvider.getDefaultCredential(transport, JSON_FACTORY);
       fail("No credential expected for default test provider.");
     } catch (IOException expected) {
     }
-    assertEquals(1, transport.getRequestCount());
+    assertEquals(0, transport.getRequestCount());
+  }
+
+  public void testDefaultCredentialWithCustomMetadataServerAddress() throws IOException {
+    MockRequestUrlRecordingTransport transport = new MockRequestUrlRecordingTransport();
+    TestDefaultCredentialProvider testProvider = new TestDefaultCredentialProvider();
+    testProvider.setEnv("GCE_METADATA_HOST", "test.metadata.server.address");
+
     try {
       testProvider.getDefaultCredential(transport, JSON_FACTORY);
       fail("No credential expected for default test provider.");
     } catch (IOException expected) {
     }
-    assertEquals(1, transport.getRequestCount());
+    assertTrue(transport.urlWasRequested("http://test.metadata.server.address"));
   }
 
   public void testDefaultCredentialNonExistentFileThrows() throws Exception {
@@ -523,14 +558,18 @@ public class DefaultCredentialProviderTest  extends TestCase  {
    * End of types simulating SystemProperty.environment.value()
    */
 
-  private static class MockRequestCountingTransport extends MockHttpTransport {
-    int requestCount = 0;
+  private static class MockRequestUrlRecordingTransport extends MockHttpTransport {
+    List<String> requestUrls = new ArrayList<String>();
 
-    MockRequestCountingTransport() {
+    MockRequestUrlRecordingTransport() {
     }
 
     int getRequestCount() {
-      return requestCount;
+      return requestUrls.size();
+    }
+
+    boolean urlWasRequested(String url) {
+      return requestUrls.contains(url);
     }
 
     @Override
@@ -538,7 +577,7 @@ public class DefaultCredentialProviderTest  extends TestCase  {
       MockLowLevelHttpRequest request = new MockLowLevelHttpRequest(url) {
         @Override
         public LowLevelHttpResponse execute() throws IOException {
-          requestCount++;
+          requestUrls.add(getUrl());
           throw new IOException("MockRequestCountingTransport request failed.");
         }
       };
@@ -568,6 +607,11 @@ public class DefaultCredentialProviderTest  extends TestCase  {
     @Override
     String getEnv(String name) {
       return variables.get(name);
+    }
+
+    @Override
+    boolean getEnvEquals(String name, String value) {
+      return variables.containsKey(name) && variables.get(name).equals(value);
     }
 
     void setEnv(String name, String value) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Google Inc.
+ * Copyright 2014 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,8 +18,8 @@ import com.google.api.client.util.Beta;
 import com.google.appengine.api.appidentity.AppIdentityService;
 import com.google.appengine.api.appidentity.AppIdentityServiceFailureException;
 import com.google.appengine.api.appidentity.PublicCertificate;
-
 import java.util.Collection;
+import java.util.Date;
 
 /**
  * {@link Beta} <br/>
@@ -70,7 +70,8 @@ public class MockAppIdentityService implements AppIdentityService {
     if (scopeCount == 0) {
       throw new AppIdentityServiceFailureException("No scopes specified.");
     }
-    return new GetAccessTokenResult(accessTokenText, null);
+    return new GetAccessTokenResult(accessTokenText,
+        new Date(System.currentTimeMillis() + 3600000));
   }
 
   @Override
@@ -85,6 +86,11 @@ public class MockAppIdentityService implements AppIdentityService {
 
   @Override
   public ParsedAppId parseFullAppId(String fullAppId) {
+    return null;
+  }
+
+  @Override
+  public String getDefaultGcsBucketName() {
     return null;
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Google Inc.
+ * Copyright 2011 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,9 +14,8 @@
 
 package com.google.api.client.googleapis.auth.oauth2;
 
-import junit.framework.TestCase;
-
 import java.util.Arrays;
+import junit.framework.TestCase;
 
 /**
  * Tests {@link GoogleBrowserClientRequestUrl}.

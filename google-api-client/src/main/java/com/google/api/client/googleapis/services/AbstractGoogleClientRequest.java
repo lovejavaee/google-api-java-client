@@ -12,6 +12,10 @@
 
 package com.google.api.client.googleapis.services;
 
+import static com.google.common.base.StandardSystemProperty.OS_NAME;
+import static com.google.common.base.StandardSystemProperty.OS_VERSION;
+
+import com.google.api.client.googleapis.GoogleUtils;
 import com.google.api.client.googleapis.MethodOverride;
 import com.google.api.client.googleapis.batch.BatchCallback;
 import com.google.api.client.googleapis.batch.BatchRequest;
@@ -33,10 +37,11 @@ import com.google.api.client.http.HttpResponseInterceptor;
 import com.google.api.client.http.UriTemplate;
 import com.google.api.client.util.GenericData;
 import com.google.api.client.util.Preconditions;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Abstract Google client request for a {@link AbstractGoogleClient}.
@@ -58,6 +63,8 @@ public abstract class AbstractGoogleClientRequest<T> extends GenericData {
    * @since 1.20
    */
   public static final String USER_AGENT_SUFFIX = "Google-API-Java-Client";
+
+  private static final String API_VERSION_HEADER = "X-Goog-Api-Client";
 
   /** Google client. */
   private final AbstractGoogleClient abstractGoogleClient;
@@ -85,6 +92,9 @@ public abstract class AbstractGoogleClientRequest<T> extends GenericData {
 
   /** Whether to disable GZip compression of HTTP content. */
   private boolean disableGZipContent;
+
+  /** Whether to return raw input stream in {@link HttpResponse#getContent()}. */
+  private boolean returnRawInputStream;
 
   /** Response class to parse into. */
   private Class<T> responseClass;
@@ -115,15 +125,105 @@ public abstract class AbstractGoogleClientRequest<T> extends GenericData {
     // application name
     String applicationName = abstractGoogleClient.getApplicationName();
     if (applicationName != null) {
-      requestHeaders.setUserAgent(applicationName + " " + USER_AGENT_SUFFIX);
+      requestHeaders.setUserAgent(applicationName + " " + USER_AGENT_SUFFIX + "/"
+              + GoogleUtils.VERSION);
     } else {
-      requestHeaders.setUserAgent(USER_AGENT_SUFFIX);
+      requestHeaders.setUserAgent(USER_AGENT_SUFFIX + "/" + GoogleUtils.VERSION);
+    }
+    // Set the header for the Api Client version (Java and OS version)
+    requestHeaders.set(API_VERSION_HEADER, ApiClientVersion.DEFAULT_VERSION);
+  }
+
+  /**
+   * Internal class to help build the X-Goog-Api-Client header. This header identifies the API
+   * Client version and environment.
+   *
+   * <p>See <a href="https://cloud.google.com/apis/docs/system-parameters"></a>
+   */
+  static class ApiClientVersion {
+    static final String DEFAULT_VERSION = new ApiClientVersion().toString();
+    private final String versionString;
+
+    ApiClientVersion() {
+      this(getJavaVersion(), OS_NAME.value(), OS_VERSION.value(), GoogleUtils.VERSION);
+    }
+
+    ApiClientVersion(String javaVersion, String osName, String osVersion, String clientVersion) {
+      StringBuilder sb = new StringBuilder("gl-java/");
+      sb.append(formatSemver(javaVersion));
+      sb.append(" gdcl/");
+      sb.append(formatSemver(clientVersion));
+      if (osName != null && osVersion != null) {
+        sb.append(" ");
+        sb.append(formatName(osName));
+        sb.append("/");
+        sb.append(formatSemver(osVersion));
+      }
+      this.versionString = sb.toString();
+    }
+
+    public String toString() {
+      return versionString;
+    }
+
+    private static String getJavaVersion() {
+      String version = System.getProperty("java.version");
+      if (version == null) {
+        return null;
+      }
+
+      // Try parsing the full semver
+      String formatted = formatSemver(version, null);
+      if (formatted != null) {
+        return formatted;
+      }
+
+      // Some java versions start with the version number and may contain extra info
+      // e.g. Java 9 reports something like 9-Debian+0-x-y while Java 11 reports "11"
+      Matcher m = Pattern.compile("^(\\d+)[^\\d]?").matcher(version);
+      if (m.find()) {
+        return m.group(1) + ".0.0";
+      }
+
+      return null;
+    }
+
+    private static String formatName(String name) {
+      // Only lowercase letters, digits, and "-" are allowed
+      return name.toLowerCase().replaceAll("[^\\w\\d\\-]", "-");
+    }
+
+    private static String formatSemver(String version) {
+      return formatSemver(version, version);
+    }
+
+    private static String formatSemver(String version, String defaultValue) {
+      if (version == null) {
+        return null;
+      }
+
+      // Take only the semver version: x.y.z-a_b_c -> x.y.z
+      Matcher m = Pattern.compile("(\\d+\\.\\d+\\.\\d+).*").matcher(version);
+      if (m.find()) {
+        return m.group(1);
+      } else {
+        return defaultValue;
+      }
     }
   }
 
   /** Returns whether to disable GZip compression of HTTP content. */
   public final boolean getDisableGZipContent() {
     return disableGZipContent;
+  }
+
+  /**
+   * Returns whether response should return raw input stream.
+   *
+   * @since 1.30
+   * */
+  public final boolean getReturnRawInputSteam() {
+    return returnRawInputStream;
   }
 
   /**
@@ -140,6 +240,27 @@ public abstract class AbstractGoogleClientRequest<T> extends GenericData {
    */
   public AbstractGoogleClientRequest<T> setDisableGZipContent(boolean disableGZipContent) {
     this.disableGZipContent = disableGZipContent;
+    return this;
+  }
+
+  /**
+   * Sets whether the response should return raw input stream or not.
+   *
+   * <p>
+   * By default it is {@code false}.
+   * </p>
+   *
+   * <p>
+   * When the response contains a known content-encoding header, the response stream is wrapped
+   * with an InputStream that decodes the content. This fails when we download large files in
+   * chunks (see <a href="https://github.com/googleapis/google-api-java-client/issues/1009">#1009
+   * </a>). Setting this to true will make the response return the raw input stream.
+   * </p>
+   *
+   * @since 1.30
+   */
+  public AbstractGoogleClientRequest<T> setReturnRawInputStream(boolean returnRawInputStream) {
+    this.returnRawInputStream = returnRawInputStream;
     return this;
   }
 
@@ -310,6 +431,7 @@ public abstract class AbstractGoogleClientRequest<T> extends GenericData {
     if (!disableGZipContent) {
       httpRequest.setEncoding(new GZipEncoding());
     }
+    httpRequest.setResponseReturnRawInputStream(returnRawInputStream);
     final HttpResponseInterceptor responseInterceptor = httpRequest.getResponseInterceptor();
     httpRequest.setResponseInterceptor(new HttpResponseInterceptor() {
 

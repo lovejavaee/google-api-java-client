@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Google Inc.
+ * Copyright 2011 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -42,7 +42,7 @@ public class GoogleJsonResponseExceptionTest extends TestCase {
     GoogleJsonResponseException ge =
         GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
     assertNull(ge.getDetails());
-    assertEquals("200", ge.getMessage());
+    assertTrue(ge.getMessage().startsWith("200"));
   }
 
   public void testFrom_withDetails() throws Exception {
@@ -54,8 +54,7 @@ public class GoogleJsonResponseExceptionTest extends TestCase {
     GoogleJsonResponseException ge =
         GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
     assertEquals(GoogleJsonErrorTest.ERROR, GoogleJsonErrorTest.FACTORY.toString(ge.getDetails()));
-    assertTrue(
-        ge.getMessage(), ge.getMessage().startsWith("403" + StringUtils.LINE_SEPARATOR + "{"));
+    assertTrue(ge.getMessage().startsWith("403"));
   }
 
   public void testFrom_detailsMissingContent() throws Exception {
@@ -67,7 +66,7 @@ public class GoogleJsonResponseExceptionTest extends TestCase {
     GoogleJsonResponseException ge =
         GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
     assertNull(ge.getDetails());
-    assertEquals("403", ge.getMessage());
+    assertTrue(ge.getMessage().startsWith("403"));
   }
 
   public void testFrom_detailsArbitraryJsonContent() throws Exception {
@@ -79,7 +78,7 @@ public class GoogleJsonResponseExceptionTest extends TestCase {
     GoogleJsonResponseException ge =
         GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
     assertNull(ge.getDetails());
-    assertEquals("403", ge.getMessage());
+    assertTrue(ge.getMessage().startsWith("403"));
   }
 
   public void testFrom_detailsArbitraryXmlContent() throws Exception {
@@ -91,8 +90,8 @@ public class GoogleJsonResponseExceptionTest extends TestCase {
     GoogleJsonResponseException ge =
         GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
     assertNull(ge.getDetails());
-    assertTrue(
-        ge.getMessage(), ge.getMessage().startsWith("403" + StringUtils.LINE_SEPARATOR + "<"));
+    assertTrue(ge.getMessage().startsWith("403"));
+    assertTrue(ge.getMessage().contains("<foo>"));
   }
 
   public void testFrom_errorNoContentButWithJsonContentType() throws Exception {
@@ -104,7 +103,7 @@ public class GoogleJsonResponseExceptionTest extends TestCase {
     GoogleJsonResponseException ge =
         GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
     assertNull(ge.getDetails());
-    assertEquals("403", ge.getMessage());
+    assertTrue(ge.getMessage().startsWith("403"));
   }
 
   public void testFrom_errorEmptyContentButWithJsonContentType() throws Exception {
@@ -116,6 +115,44 @@ public class GoogleJsonResponseExceptionTest extends TestCase {
     GoogleJsonResponseException ge =
         GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
     assertNull(ge.getDetails());
-    assertEquals("403", ge.getMessage());
+    assertTrue(ge.getMessage().startsWith("403"));
+  }
+
+  public void testFrom_detailsErrorObject() throws Exception {
+    HttpTransport transport = new ErrorTransport("{\"error\": {\"message\": \"invalid_token\"}, \"error_description\": \"Invalid value\"}", Json.MEDIA_TYPE);
+    HttpRequest request =
+        transport.createRequestFactory().buildGetRequest(HttpTesting.SIMPLE_GENERIC_URL);
+    request.setThrowExceptionOnExecuteError(false);
+    HttpResponse response = request.execute();
+    GoogleJsonResponseException ge =
+        GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
+    assertNotNull(ge.getDetails());
+    assertEquals("invalid_token", ge.getDetails().getMessage());
+    assertTrue(ge.getMessage().contains("403"));
+  }
+
+  public void testFrom_detailsErrorString() throws Exception {
+    HttpTransport transport = new ErrorTransport("{\"error\": \"invalid_token\", \"error_description\": \"Invalid value\"}", Json.MEDIA_TYPE);
+    HttpRequest request =
+        transport.createRequestFactory().buildGetRequest(HttpTesting.SIMPLE_GENERIC_URL);
+    request.setThrowExceptionOnExecuteError(false);
+    HttpResponse response = request.execute();
+    GoogleJsonResponseException ge =
+        GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
+    assertNull(ge.getDetails());
+    assertTrue(ge.getMessage().contains("403"));
+    assertTrue(ge.getMessage().contains("invalid_token"));
+  }
+
+  public void testFrom_detailsNoErrorField() throws Exception {
+    HttpTransport transport = new ErrorTransport("{\"error_description\": \"Invalid value\"}", Json.MEDIA_TYPE);
+    HttpRequest request =
+        transport.createRequestFactory().buildGetRequest(HttpTesting.SIMPLE_GENERIC_URL);
+    request.setThrowExceptionOnExecuteError(false);
+    HttpResponse response = request.execute();
+    GoogleJsonResponseException ge =
+        GoogleJsonResponseException.from(GoogleJsonErrorTest.FACTORY, response);
+    assertNull(ge.getDetails());
+    assertTrue(ge.getMessage().startsWith("403"));
   }
 }

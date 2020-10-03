@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Google Inc.
+ * Copyright 2012 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -21,10 +21,10 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.util.Beta;
 import com.google.api.client.util.Clock;
 import com.google.api.client.util.Preconditions;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -129,7 +129,7 @@ public class GoogleIdTokenVerifier extends IdTokenVerifier {
    * </p>
    *
    * @deprecated (scheduled to be removed in 1.18) Use {@link #getPublicKeysManager()} and
-   *             {@link GooglePublicKeysManager#getPublicCertsEncodedUrl()} instead.
+   *             {@link GooglePublicKeysManager#getPublicKeys()} instead.
    */
   @Deprecated
   public final List<PublicKey> getPublicKeys() throws GeneralSecurityException, IOException {
@@ -158,7 +158,7 @@ public class GoogleIdTokenVerifier extends IdTokenVerifier {
    * the public certificate endpoint.</li>
    * <li>The current time against the issued at and expiration time (allowing for a 5 minute clock
    * skew).</li>
-   * <li>The issuer is {@code "accounts.google.com"}.</li>
+   * <li>The issuer is {@code "accounts.google.com"} or {@code "https://accounts.google.com"}.</li>
    * </ul>
    *
    * @param googleIdToken Google ID token
@@ -169,7 +169,7 @@ public class GoogleIdTokenVerifier extends IdTokenVerifier {
     if (!super.verify(googleIdToken)) {
       return false;
     }
-    // verify signature
+    // verify signature, try all public keys in turn.
     for (PublicKey publicKey : publicKeys.getPublicKeys()) {
       if (googleIdToken.verifySignature(publicKey)) {
         return true;
@@ -241,7 +241,7 @@ public class GoogleIdTokenVerifier extends IdTokenVerifier {
      */
     public Builder(GooglePublicKeysManager publicKeys) {
       this.publicKeys = Preconditions.checkNotNull(publicKeys);
-      setIssuer("accounts.google.com");
+      setIssuers(Arrays.asList("accounts.google.com", "https://accounts.google.com"));
     }
 
     /** Builds a new instance of {@link GoogleIdTokenVerifier}. */
@@ -309,6 +309,14 @@ public class GoogleIdTokenVerifier extends IdTokenVerifier {
     @Override
     public Builder setIssuer(String issuer) {
       return (Builder) super.setIssuer(issuer);
+    }
+
+    /**
+     * @since 1.21.0
+     */
+    @Override
+    public Builder setIssuers(Collection<String> issuers) {
+      return (Builder) super.setIssuers(issuers);
     }
 
     @Override

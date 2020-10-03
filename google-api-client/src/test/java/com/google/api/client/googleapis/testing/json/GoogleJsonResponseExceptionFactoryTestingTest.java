@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Google Inc.
+ * Copyright 2013 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,10 +17,8 @@ package com.google.api.client.googleapis.testing.json;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
-
-import junit.framework.TestCase;
-
 import java.io.IOException;
+import junit.framework.TestCase;
 
 /**
  * Tests {@link GoogleJsonResponseExceptionFactoryTesting}
